@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en" class="transition-colors duration-500">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockSense IMS | Secure Login</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                        'slide-in-right': 'slideInRight 0.4s ease-out forwards',
+                        'float': 'float 6s ease-in-out infinite',
+                        'fade-in': 'fadeIn 0.3s ease-in-out forwards'
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        slideInRight: {
+                            '0%': { opacity: '0', transform: 'translateX(50px)' },
+                            '100%': { opacity: '1', transform: 'translateX(0)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-15px)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateX(20px)' },
+                            '100%': { opacity: '1', transform: 'translateX(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        html:not(.dark) input {
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+        }
+
+        html.dark input {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+
+        .has-content + label,
+        input:focus + label {
+            top: 0.5rem !important;
+            font-size: 0.75rem !important;
+            color: #6366f1 !important;
+        }
+
+        .ripple { position: absolute; border-radius: 50%; transform: scale(0); animation: ripple-anim 0.6s linear; background-color: rgba(255, 255, 255, 0.4); pointer-events: none; }
+        @keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+        
+        body, button, select, input, a, label { cursor: default !important; }
+        #cursor-dot { position: fixed; top: 0; left: 0; width: 8px; height: 8px; background-color: #6366f1; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); z-index: 99999; }
+        #cursor-outline { position: fixed; top: 0; left: 0; width: 34px; height: 34px; border: 2px solid #6366f1; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); z-index: 99998; }
+
+        .honey-drop {
+            position: absolute; width: 18px; height: 18px;
+            background: radial-gradient(circle at 30% 30%, #fde047, #d97706);
+            border-radius: 0 50% 50% 50%;
+            box-shadow: inset -2px -2px 4px rgba(180, 83, 9, 0.6), 0 2px 5px rgba(217, 119, 6, 0.4);
+            opacity: 0.9; z-index: 20; animation: honeyFall forwards ease-in; pointer-events: none;
+        }
+        @keyframes honeyFall {
+            0% { top: -30px; transform: rotate(45deg) scale(0); opacity: 0; }
+            5% { top: 0px; transform: rotate(45deg) scale(1.2); opacity: 1; }
+            100% { top: 110%; transform: rotate(45deg) scale(0.8); opacity: 0; }
+        }
+
+        #teddy-tongue {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+            transform-origin: 110px 135px; transform: scaleY(0); opacity: 0;
+        }
+        #teddy-tongue.active { transform: scaleY(1); opacity: 1; }
+        #teddy-smile { transition: opacity 0.2s ease; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 flex items-center justify-center min-h-screen font-sans text-gray-800 dark:text-gray-100 transition-colors duration-500 overflow-hidden relative selection:bg-indigo-500 selection:text-white">
+
+    <div id="cursor-dot"></div>
+    <div id="cursor-outline"></div>
+
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none transition-opacity duration-700">
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-400/30 dark:bg-indigo-600/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 animate-blob"></div>
+        <div class="absolute top-[20%] right-[-10%] w-[500px] h-[500px] bg-purple-400/30 dark:bg-purple-600/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[-20%] left-[20%] w-[500px] h-[500px] bg-pink-400/30 dark:bg-pink-600/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3"></div>
+
+    <div class="fixed top-6 right-6 z-50 flex items-center gap-3">
+        <span class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest hidden sm:block">Theme</span>
+        <button id="theme-toggle" class="p-3.5 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg border border-gray-200 dark:border-gray-700 hover:scale-110 hover:shadow-xl transition-all focus:outline-none interactive-el flex items-center justify-center w-12 h-12">
+            <span id="theme-icon-dark" class="text-gray-700 text-lg">🌙</span>
+            <span id="theme-icon-light" class="text-amber-400 text-lg hidden">☀️</span>
+        </button>
+    </div>
+
+    <div class="w-full max-w-5xl h-[740px] bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/40 dark:border-gray-700/50 flex overflow-hidden transform transition-all duration-500 m-6 relative z-10">
+        
+        <!-- Left Side: Teddy Bear -->
+        <div id="left-pane" class="hidden lg:flex w-1/2 bg-gradient-to-br from-indigo-600 to-purple-700 p-10 flex-col justify-between relative overflow-hidden text-white">
+            <div class="absolute inset-0 bg-white/10 backdrop-blur-[2px]"></div>
+            
+            <div class="relative z-10 text-center">
+                <h1 class="text-3xl font-bold tracking-wider mb-1 flex items-center justify-center gap-3">
+                    <span class="p-2 bg-white/20 rounded-xl backdrop-blur-md">📦</span> StockSense
+                </h1>
+                <p class="text-indigo-100 font-medium">Manage with Precision</p>
+            </div>
+
+            <div class="relative z-10 flex items-center justify-center h-full w-full">
+                <div id="teddy-speech" class="absolute top-10 left-1/2 -translate-x-1/2 bg-white/95 text-amber-600 px-5 py-3 rounded-2xl shadow-xl font-bold text-[15px] text-center w-64 opacity-0 scale-90 transition-all duration-500 pointer-events-none z-30 transform origin-bottom border border-amber-200">
+                    "I will remember you always, don't forget me! 🍯"
+                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/95 rotate-45 border-b border-r border-amber-200"></div>
+                </div>
+
+                <div class="animate-float mt-12">
+                    <svg id="teddy" viewBox="0 0 220 300" xmlns="http://www.w3.org/2000/svg" class="w-80 h-80 xl:w-96 xl:h-96 drop-shadow-2xl overflow-visible pointer-events-none">
+                        <defs>
+                            <radialGradient id="bear-fur" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#C97A4E"/>
+                                <stop offset="100%" stop-color="#8B4513"/>
+                            </radialGradient>
+                            <radialGradient id="bear-snout" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#FFE4B5"/>
+                                <stop offset="100%" stop-color="#DEB887"/>
+                            </radialGradient>
+                        </defs>
+                        <ellipse cx="110" cy="220" rx="85" ry="90" fill="url(#bear-fur)"/>
+                        <path d="M 135 170 C 160 210, 140 250, 155 290 L 125 285 C 120 240, 130 200, 115 170 Z" fill="#9F1239"/>
+                        <circle cx="45" cy="55" r="22" fill="url(#bear-fur)"/>
+                        <circle cx="175" cy="55" r="22" fill="url(#bear-fur)"/>
+                        <circle cx="110" cy="110" r="78" fill="url(#bear-fur)"/>
+                        <g id="normal-eyes">
+                            <circle cx="75" cy="95" r="7" fill="#111"/><circle cx="72" cy="93" r="2.5" fill="#fff"/>
+                            <circle cx="145" cy="95" r="7" fill="#111"/><circle cx="142" cy="93" r="2.5" fill="#fff"/>
+                        </g>
+                        <g id="peek-eye" class="opacity-0"><circle cx="75" cy="95" r="7" fill="#111"/><circle cx="72" cy="93" r="2.5" fill="#fff"/></g>
+                        <circle cx="110" cy="130" r="32" fill="url(#bear-snout)"/>
+                        <ellipse cx="110" cy="118" rx="12" ry="8" fill="#222"/>
+                        <path id="teddy-tongue" d="M 100 135 C 100 152, 120 152, 120 135 Z" fill="#F43F5E"/>
+                        <path id="teddy-smile" d="M 95 138 Q 110 148 125 138" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>
+                        <path d="M 25 150 C 70 210, 150 210, 195 150 C 150 175, 70 175, 25 150 Z" fill="#E11D48"/>
+                        <path d="M 95 180 C 80 220, 105 260, 90 300 L 65 295 C 65 250, 80 210, 95 175 Z" fill="#E11D48"/>
+                        <g id="paw-left" style="transform-origin: 40px 180px; transform: rotate(0deg); transition: transform 0.4s ease;"><path d="M 40 180 Q 15 240 45 280" fill="none" stroke="url(#bear-fur)" stroke-width="36" stroke-linecap="round"/></g>
+                        <g id="paw-right" style="transform-origin: 180px 180px; transform: rotate(0deg); transition: transform 0.4s ease;"><path d="M 180 180 Q 205 240 175 280" fill="none" stroke="url(#bear-fur)" stroke-width="36" stroke-linecap="round"/></g>
+                    </svg>
+                </div>
+            </div>
+            <div class="relative z-10 text-sm text-indigo-200/80 text-center mt-4">&copy; 2026 StockSense Inc.</div>
+        </div>
+
+        <!-- Right Side Forms -->
+        <div class="w-full lg:w-1/2 p-8 sm:p-12 flex flex-col justify-center relative bg-white dark:bg-gray-900 transition-colors duration-500 overflow-y-auto">
+            
+            <!-- SECTION 1: LOGIN -->
+            <div id="section-login" class="w-full flex flex-col animate-fade-in">
+                <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">Welcome Back</h2>
+                <p class="text-gray-500 dark:text-gray-400 mb-6 font-medium">Sign in to your private inventory database.</p>
+
+                <form id="loginForm" class="space-y-4">
+                    <div class="relative group">
+                        <input type="email" id="loginEmail" class="interactive-el peer w-full px-4 pt-6 pb-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent focus:outline-none focus:border-indigo-500 transition-colors shadow-sm" placeholder=" " required autocomplete="off">
+                        <label class="absolute left-4 top-4 text-gray-400 transition-all duration-200 font-semibold pointer-events-none uppercase tracking-wide text-xs">Email Address</label>
+                    </div>
+
+                    <div class="relative group">
+                        <input type="password" id="loginPassword" class="interactive-el peer w-full px-4 pt-6 pb-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent focus:outline-none focus:border-indigo-500 transition-colors shadow-sm pr-12" placeholder=" " required autocomplete="current-password">
+                        <label class="absolute left-4 top-4 text-gray-400 transition-all duration-200 font-semibold pointer-events-none uppercase tracking-wide text-xs">Password</label>
+                        <button type="button" id="togglePassword" class="interactive-el absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-500 focus:outline-none">
+                            <span id="eye-icon">👁️</span>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between text-sm">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="rememberMe" class="w-4 h-4 rounded text-indigo-600"> Remember me
+                        </label>
+                        <button type="button" id="navForgotBtn" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">Forgot password?</button>
+                    </div>
+
+                    <button type="submit" id="submitLogin" class="interactive-el w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-xl font-bold shadow-lg hover:opacity-95 transition-all">Sign In</button>
+                    
+                    <div class="text-center pt-2">
+                        <span class="text-sm text-gray-500">New to StockSense? </span>
+                        <button type="button" id="navRegisterBtn" class="interactive-el text-sm font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline">Create account</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- SECTION 1.1: LOGIN OTP VERIFICATION -->
+            <div id="section-login-otp" class="w-full flex flex-col animate-fade-in hidden">
+                <button type="button" class="navBackToLogin interactive-el text-sm font-bold text-gray-500 hover:text-indigo-600 mb-3">← Back to Login</button>
+                <h2 class="text-2xl font-extrabold text-gray-900 dark:text-white mb-1">Verify Login OTP</h2>
+                <p class="text-gray-500 dark:text-gray-400 mb-4 text-xs">Enter the 6-digit login verification code sent to your email.</p>
+
+                <form id="loginOtpForm" class="space-y-4">
+                    <div class="relative group">
+                        <input type="text" id="loginOtpCode" maxlength="6" class="interactive-el peer w-full px-4 pt-6 pb-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent text-center font-mono font-bold tracking-[1em]" placeholder=" " required>
+                        <label class="absolute left-4 top-4 text-gray-400 text-xs font-semibold uppercase">6-Digit Code</label>
+                    </div>
+                    <button type="submit" class="interactive-el w-full bg-indigo-600 text-white p-4 rounded-xl font-bold shadow-lg text-sm">Verify & Sign In</button>
+                </form>
+            </div>
+
+            <!-- SECTION 1.5: CREATE ACCOUNT -->
+            <div id="section-register" class="w-full flex flex-col animate-fade-in hidden">
+                <button type="button" class="navBackToLogin interactive-el text-sm font-bold text-gray-500 hover:text-indigo-600 mb-3">← Back to Login</button>
+                <h2 class="text-2xl font-extrabold text-gray-900 dark:text-white mb-1">Create Account</h2>
+                <p class="text-gray-500 dark:text-gray-400 mb-4 text-xs">Set up your private StockSense account profile.</p>
+
+                <form id="registerForm" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="relative group">
+                            <input type="text" id="regName" class="interactive-el peer w-full px-3 pt-5 pb-1.5 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent text-sm focus:outline-none focus:border-indigo-500" placeholder=" " required>
+                            <label class="absolute left-3 top-3 text-gray-400 text-[10px] font-semibold uppercase">Name</label>
+                        </div>
+                        <div class="relative group">
+                            <input type="text" id="regSurname" class="interactive-el peer w-full px-3 pt-5 pb-1.5 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent text-sm focus:outline-none focus:border-indigo-500" placeholder=" " required>
+                            <label class="absolute left-3 top-3 text-gray-400 text-[10px] font-semibold uppercase">Surname</label>
+                        </div>
+                    </div>
+                    <div class="relative group">
+                        <input type="text" id="regCountry" class="interactive-el peer w-full px-3 pt-5 pb-1.5 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent text-sm focus:outline-none focus:border-indigo-500" placeholder=" " required>
+                        <label class="absolute left-3 top-3 text-gray-400 text-[10px] font-semibold uppercase">Country</label>
+                    </div>
+                    <div class="relative group">
+                        <input type="email" id="regEmail" class="interactive-el peer w-full px-3 pt-5 pb-1.5 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent text-sm focus:outline-none focus:border-indigo-500" placeholder=" " required>
+                        <label class="absolute left-3 top-3 text-gray-400 text-[10px] font-semibold uppercase">Email Address</label>
+                    </div>
+                    <div class="relative group">
+                        <input type="password" id="regPassword" class="interactive-el peer w-full px-3 pt-5 pb-1.5 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent text-sm focus:outline-none focus:border-indigo-500" placeholder=" " required>
+                        <label class="absolute left-3 top-3 text-gray-400 text-[10px] font-semibold uppercase">Password</label>
+                    </div>
+                    <button type="submit" class="interactive-el w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-3.5 rounded-xl font-bold shadow-lg text-sm mt-2">Register & Send OTP</button>
+                </form>
+            </div>
+
+            <!-- SECTION 1.6: REGISTER OTP VERIFICATION -->
+            <div id="section-register-otp" class="w-full flex flex-col animate-fade-in hidden">
+                <button type="button" class="navBackToLogin interactive-el text-sm font-bold text-gray-500 hover:text-indigo-600 mb-3">← Back to Login</button>
+                <h2 class="text-2xl font-extrabold text-gray-900 dark:text-white mb-1">Verify Registration</h2>
+                <p class="text-gray-500 dark:text-gray-400 mb-4 text-xs">Enter the 6-digit code sent to your email to activate your account.</p>
+
+                <form id="registerOtpForm" class="space-y-4">
+                    <div class="relative group">
+                        <input type="text" id="regOtpCode" maxlength="6" class="interactive-el peer w-full px-4 pt-6 pb-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent text-center font-mono font-bold tracking-[1em]" placeholder=" " required>
+                        <label class="absolute left-4 top-4 text-gray-400 text-xs font-semibold uppercase">6-Digit Code</label>
+                    </div>
+                    <button type="submit" class="interactive-el w-full bg-emerald-600 text-white p-4 rounded-xl font-bold shadow-lg text-sm">Verify & Complete Account</button>
+                </form>
+            </div>
+
+            <!-- SECTION 2: REQUEST OTP -->
+            <div id="section-otp-request" class="w-full flex flex-col animate-fade-in hidden">
+                <button type="button" class="navBackToLogin interactive-el text-sm font-bold text-gray-500 hover:text-indigo-600 mb-4">← Back to Login</button>
+                <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">Reset Password</h2>
+                <p class="text-gray-500 dark:text-gray-400 mb-6 text-sm">Enter your account email to receive a secure OTP code.</p>
+
+                <form id="otpRequestForm" class="space-y-5">
+                    <div class="relative group">
+                        <input type="email" id="resetEmail" class="interactive-el peer w-full px-4 pt-6 pb-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent focus:outline-none focus:border-indigo-500" placeholder=" " required>
+                        <label class="absolute left-4 top-4 text-gray-400 text-xs font-semibold uppercase">Email Address</label>
+                    </div>
+                    <button type="submit" class="interactive-el w-full bg-gray-900 dark:bg-white dark:text-gray-900 text-white p-4 rounded-xl font-bold">Send OTP Code</button>
+                </form>
+            </div>
+
+            <!-- SECTION 3: VERIFY OTP -->
+            <div id="section-otp-verify" class="w-full flex flex-col animate-fade-in hidden">
+                <button type="button" class="navBackToLogin interactive-el text-sm font-bold text-gray-500 hover:text-indigo-600 mb-4">← Back to Login</button>
+                <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">Enter OTP & New Password</h2>
+                <p class="text-gray-500 dark:text-gray-400 mb-6 text-sm">Check your terminal server logs for the 6-digit OTP code.</p>
+
+                <form id="otpVerifyForm" class="space-y-5">
+                    <div class="relative group">
+                        <input type="text" id="verifyOtpCode" maxlength="6" class="interactive-el peer w-full px-4 pt-6 pb-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent text-center font-mono font-bold tracking-[1em]" placeholder=" " required>
+                        <label class="absolute left-4 top-4 text-gray-400 text-xs font-semibold uppercase">6-Digit OTP</label>
+                    </div>
+                    <div class="relative group">
+                        <input type="password" id="verifyNewPassword" class="interactive-el peer w-full px-4 pt-6 pb-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-transparent focus:outline-none focus:border-indigo-500" placeholder=" " required>
+                        <label class="absolute left-4 top-4 text-gray-400 text-xs font-semibold uppercase">New Password</label>
+                    </div>
+                    <button type="submit" class="interactive-el w-full bg-emerald-600 text-white p-4 rounded-xl font-bold">Confirm New Password</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            if (input.value !== '') input.classList.add('has-content');
+            input.addEventListener('input', () => input.classList.toggle('has-content', input.value.trim() !== ''));
+            input.addEventListener('blur', () => input.classList.toggle('has-content', input.value.trim() !== ''));
+        });
+
+        // --- PASSWORD VISIBILITY TOGGLE ---
+        const loginPassword = document.getElementById('loginPassword');
+        const togglePassword = document.getElementById('togglePassword');
+        const eyeIcon = document.getElementById('eye-icon');
+
+        if (togglePassword) {
+            togglePassword.addEventListener('click', () => {
+                const isPassword = loginPassword.type === 'password';
+                loginPassword.type = isPassword ? 'text' : 'password';
+                eyeIcon.textContent = isPassword ? '🔒' : '👁️';
+                if (isPassword) {
+                    teddyPeekState();
+                } else {
+                    teddyCoverState();
+                }
+            });
+        }
+
+        // --- CURSOR & TEDDY EYE TRACKING WITH LAG ---
+        const cursorDot = document.getElementById("cursor-dot");
+        const cursorOutline = document.getElementById("cursor-outline");
+        const teddyElement = document.getElementById("teddy");
+        const normalEyes = document.getElementById('normal-eyes');
+        const peekEye = document.getElementById('peek-eye');
+        const pawLeft = document.getElementById('paw-left');
+        const pawRight = document.getElementById('paw-right');
+        const teddySmile = document.getElementById('teddy-smile');
+        
+        let mouseX = 0, mouseY = 0;
+        let outlineX = 0, outlineY = 0;
+        let isCoveringEyes = false;
+
+        function teddySmileState() {
+            isCoveringEyes = false;
+            if(teddySmile) teddySmile.style.opacity = '1';
+            if(pawLeft) pawLeft.style.transform = 'rotate(0deg)';
+            if(pawRight) pawRight.style.transform = 'rotate(0deg)';
+            if(normalEyes) normalEyes.classList.remove('opacity-0');
+            if(peekEye) peekEye.classList.add('opacity-0');
+        }
+
+        function teddyCoverState() {
+            isCoveringEyes = true;
+            if(teddySmile) teddySmile.style.opacity = '1';
+            if(pawLeft) pawLeft.style.transform = 'rotate(-145deg)';
+            if(pawRight) pawRight.style.transform = 'rotate(145deg)';
+            if(normalEyes) normalEyes.classList.add('opacity-0');
+            if(peekEye) peekEye.classList.add('opacity-0');
+        }
+
+        function teddyPeekState() {
+            isCoveringEyes = true;
+            if(teddySmile) teddySmile.style.opacity = '1';
+            if(pawLeft) pawLeft.style.transform = 'rotate(-100deg)';
+            if(pawRight) pawRight.style.transform = 'rotate(145deg)';
+            if(normalEyes) normalEyes.classList.add('opacity-0');
+            if(peekEye) peekEye.classList.remove('opacity-0');
+        }
+
+        if (loginPassword) {
+            loginPassword.addEventListener('focus', () => {
+                if (loginPassword.type === 'text') teddyPeekState();
+                else teddyCoverState();
+            });
+            loginPassword.addEventListener('blur', () => {
+                if (!document.getElementById('rememberMe').checked) teddySmileState();
+            });
+        }
+
+        window.addEventListener("mousemove", (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            cursorDot.style.left = `${mouseX}px`; 
+            cursorDot.style.top = `${mouseY}px`;
+
+            document.body.classList.toggle('cursor-hover', !!e.target.closest('.interactive-el, a, button, input'));
+
+            if (teddyElement && !isCoveringEyes && normalEyes) {
+                const rect = teddyElement.getBoundingClientRect();
+                const eyeCenterX = rect.left + (rect.width / 2);
+                const eyeCenterY = rect.top + (rect.height * 0.31);
+
+                const angle = Math.atan2(mouseY - eyeCenterY, mouseX - eyeCenterX);
+                const maxRadius = 4;
+                const distance = Math.min(Math.hypot(mouseX - eyeCenterX, mouseY - eyeCenterY) / 60, maxRadius);
+                
+                const moveX = Math.cos(angle) * distance;
+                const moveY = Math.sin(angle) * distance;
+
+                normalEyes.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                if (peekEye) peekEye.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            }
+        });
+
+        function animateCursor() {
+            outlineX += (mouseX - outlineX) * 0.15;
+            outlineY += (mouseY - outlineY) * 0.15;
+            cursorOutline.style.left = `${outlineX}px`;
+            cursorOutline.style.top = `${outlineY}px`;
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        // --- REMEMBER ME & HONEY DROP ANIMATION ---
+        const rememberMe = document.getElementById('rememberMe');
+        const teddySpeech = document.getElementById('teddy-speech');
+        const leftPane = document.getElementById('left-pane');
+        const teddyTongue = document.getElementById('teddy-tongue');
+        
+        let honeyInterval;
+        let speechTimeout;
+        let honeyTimeout;
+
+        function teddyHappyWithHoneyState() {
+            if (!teddySmile) return;
+            teddySmile.style.opacity = '0';
+            if (teddyTongue) teddyTongue.classList.add('active');
+        }
+
+        function createHoneyDrop() {
+            if (!leftPane) return;
+            const drop = document.createElement('div');
+            drop.className = 'honey-drop';
+            drop.style.left = (Math.random() * 80 + 10) + '%';
+            drop.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            const scale = Math.random() * 0.5 + 0.7;
+            drop.style.transform = `scale(${scale})`;
+            leftPane.appendChild(drop);
+            setTimeout(() => { if (drop.parentNode) drop.remove(); }, 5000);
+        }
+
+        if (rememberMe) {
+            rememberMe.addEventListener('change', (e) => {
+                clearTimeout(speechTimeout);
+                clearTimeout(honeyTimeout);
+                clearInterval(honeyInterval);
+
+                if (e.target.checked) {
+                    if (teddySpeech) {
+                        teddySpeech.classList.remove('opacity-0', 'scale-90');
+                        teddySpeech.classList.add('opacity-100', 'scale-100');
+                    }
+                    teddyHappyWithHoneyState();
+
+                    createHoneyDrop();
+                    honeyInterval = setInterval(createHoneyDrop, 450);
+
+                    speechTimeout = setTimeout(() => {
+                        if (teddySpeech) {
+                            teddySpeech.classList.add('opacity-0', 'scale-90');
+                            teddySpeech.classList.remove('opacity-100', 'scale-100');
+                        }
+                    }, 5000);
+
+                    honeyTimeout = setTimeout(() => {
+                        clearInterval(honeyInterval);
+                    }, 5000);
+
+                } else {
+                    if (teddySpeech) {
+                        teddySpeech.classList.add('opacity-0', 'scale-90');
+                        teddySpeech.classList.remove('opacity-100', 'scale-100');
+                    }
+                    teddySmileState();
+                    clearInterval(honeyInterval);
+                }
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `${type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'} text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 font-medium animate-slide-in-right z-50`;
+            toast.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3500);
+        }
+
+        const viewLogin = document.getElementById('section-login');
+        const viewLoginOtp = document.getElementById('section-login-otp');
+        const viewRegister = document.getElementById('section-register');
+        const viewRegisterOtp = document.getElementById('section-register-otp');
+        const viewOtpReq = document.getElementById('section-otp-request');
+        const viewOtpVer = document.getElementById('section-otp-verify');
+
+        document.getElementById('navRegisterBtn').addEventListener('click', () => { viewLogin.classList.add('hidden'); viewRegister.classList.remove('hidden'); });
+        document.getElementById('navForgotBtn').addEventListener('click', () => { viewLogin.classList.add('hidden'); viewOtpReq.classList.remove('hidden'); });
+        document.querySelectorAll('.navBackToLogin').forEach(btn => btn.addEventListener('click', () => {
+            viewRegister.classList.add('hidden'); viewLoginOtp.classList.add('hidden'); viewRegisterOtp.classList.add('hidden'); viewOtpReq.classList.add('hidden'); viewOtpVer.classList.add('hidden'); viewLogin.classList.remove('hidden');
+        }));
+
+        let pendingAuthEmail = "";
+
+        // Login Handler (Triggers Login OTP)
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            pendingAuthEmail = loginEmail.value;
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: pendingAuthEmail, password: loginPassword.value })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message, 'success');
+                    viewLogin.classList.add('hidden');
+                    viewLoginOtp.classList.remove('hidden');
+                } else throw new Error(data.detail);
+            } catch (err) { showToast(err.message || 'Login failed', 'error'); }
+        });
+
+        // Verify Login OTP Handler
+        document.getElementById('loginOtpForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await fetch('/api/auth/verify-login-otp', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: pendingAuthEmail, otp: loginOtpCode.value })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('user_id', data.user_id);
+                    localStorage.setItem('user_email', pendingAuthEmail);
+                    showToast('Bear now remembers you forever! 🐻✨', 'success');
+                    setTimeout(() => { window.location.href = '/app'; }, 1000);
+                } else throw new Error(data.detail);
+            } catch (err) { showToast(err.message || 'Verification failed', 'error'); }
+        });
+
+        // Register Handler (Triggers Registration OTP)
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            pendingAuthEmail = regEmail.value;
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: regName.value,
+                        surname: regSurname.value,
+                        country: regCountry.value,
+                        email: pendingAuthEmail,
+                        password: regPassword.value
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message, 'success');
+                    viewRegister.classList.add('hidden');
+                    viewRegisterOtp.classList.remove('hidden');
+                } else throw new Error(data.detail);
+            } catch (err) { showToast(err.message, 'error'); }
+        });
+
+        // Verify Registration OTP Handler
+        document.getElementById('registerOtpForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await fetch('/api/auth/verify-register-otp', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: pendingAuthEmail, otp: regOtpCode.value })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message, 'success');
+                    setTimeout(() => { viewRegisterOtp.classList.add('hidden'); viewLogin.classList.remove('hidden'); }, 1500);
+                } else throw new Error(data.detail);
+            } catch (err) { showToast(err.message, 'error'); }
+        });
+
+        // Request OTP Handler
+        let storedResetEmail = "";
+        document.getElementById('otpRequestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            storedResetEmail = document.getElementById('resetEmail').value;
+            try {
+                const res = await fetch('/api/auth/request-otp', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: storedResetEmail })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message, 'success');
+                    viewOtpReq.classList.add('hidden'); viewOtpVer.classList.remove('hidden');
+                } else throw new Error(data.detail);
+            } catch (err) { showToast(err.message, 'error'); }
+        });
+
+        // Verify OTP & Reset
+        document.getElementById('otpVerifyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await fetch('/api/auth/reset-password', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: storedResetEmail, otp: verifyOtpCode.value, new_password: verifyNewPassword.value })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message, 'success');
+                    setTimeout(() => { viewOtpVer.classList.add('hidden'); viewLogin.classList.remove('hidden'); }, 1500);
+                } else throw new Error(data.detail);
+            } catch (err) { showToast(err.message, 'error'); }
+        });
+
+        // Theme toggle & Icon switching logic
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const darkIcon = document.getElementById('theme-icon-dark');
+        const lightIcon = document.getElementById('theme-icon-light');
+        const htmlElement = document.documentElement;
+
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            htmlElement.classList.add('dark');
+            darkIcon.classList.add('hidden');
+            lightIcon.classList.remove('hidden');
+        } else {
+            htmlElement.classList.remove('dark');
+            darkIcon.classList.remove('hidden');
+            lightIcon.classList.add('hidden');
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            htmlElement.classList.toggle('dark');
+            const isDark = htmlElement.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            darkIcon.classList.toggle('hidden', isDark);
+            lightIcon.classList.toggle('hidden', !isDark);
+        });
+    </script>
+</body>
+</html>
