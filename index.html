@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en" class="transition-colors duration-300">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockSense IMS | Modern</title>
+    
+    <!-- Tailwind CSS Script -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.4s ease-out forwards',
+                        'wave': 'wave 2s infinite',
+                        'slide-in-right': 'slideInRight 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(15px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        wave: {
+                            '0%, 100%': { transform: 'rotate(0deg)' },
+                            '25%': { transform: 'rotate(-15deg)' },
+                            '75%': { transform: 'rotate(15deg)' },
+                        },
+                        slideInRight: {
+                            '0%': { opacity: '0', transform: 'translateX(50px)' },
+                            '100%': { opacity: '1', transform: 'translateX(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #818cf8; }
+        
+        /* Dark Mode Scrollbar */
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #4f46e5; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+        
+        .sidebar-custom button:hover { 
+            transform: translateX(6px); 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+
+        /* --- Smooth Custom Cursor --- */
+        body, button, select, input, a, .nav-btn {
+            cursor: default !important; 
+        }
+
+        #cursor-dot {
+            position: fixed; top: 0; left: 0;
+            width: 8px; height: 8px;
+            background-color: #6366f1;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 99999;
+            transition: background-color 0.2s ease;
+        }
+
+        #cursor-outline {
+            position: fixed; top: 0; left: 0;
+            width: 32px; height: 32px;
+            border: 2px solid #6366f1;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s ease, height 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+            z-index: 99998;
+        }
+
+        /* Cursor Hover State */
+        .cursor-hover #cursor-outline {
+            width: 50px; height: 50px;
+            background-color: rgba(99, 102, 241, 0.1);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+        .cursor-hover #cursor-dot {
+            background-color: #4f46e5;
+            transform: translate(-50%, -50%) scale(1.5);
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 flex h-screen font-sans text-gray-800 dark:text-gray-100 transition-colors duration-300">
+
+    <!-- Custom Cursor Elements -->
+    <div id="cursor-dot"></div>
+    <div id="cursor-outline"></div>
+
+    <!-- Floating Toast Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3"></div>
+
+    <!-- Left Sidebar -->
+    <aside class="w-64 bg-white dark:bg-gray-950 text-gray-800 dark:text-white flex flex-col shadow-2xl sidebar-custom transition-colors duration-300 z-20 border-r border-gray-200 dark:border-gray-800">
+        <div class="h-20 flex items-center justify-center border-b border-gray-200 dark:border-gray-800 font-bold text-2xl tracking-wider bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+            📦 StockSense
+        </div>
+        
+        <nav class="flex-1 px-4 py-8 space-y-4">
+            <button id="btn-dashboard" class="nav-btn w-full text-left px-5 py-4 text-base bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-xl font-semibold transition-all shadow-sm">📊 Dashboard</button>
+            <button id="btn-products" class="nav-btn w-full text-left px-5 py-4 text-base hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all">🛒 Products</button>
+            <button id="btn-operations" class="nav-btn w-full text-left px-5 py-4 text-base hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all">🔄 Operations</button>
+        </nav>
+
+        <!-- LARGE DARK MODE TOGGLE -->
+        <div class="p-4 mt-auto border-t border-gray-200 dark:border-gray-800">
+            <button id="theme-toggle" class="nav-btn w-full flex items-center justify-center gap-2 px-5 py-4 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition shadow-sm focus:outline-none" title="Toggle Dark/Light Mode">
+                <span id="theme-icon-dark" class="hidden">🌙 Dark Mode</span>
+                <span id="theme-icon-light" class="hidden">☀️ Light Mode</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden relative bg-white dark:bg-gray-900 transition-colors">
+        
+        <!-- Header -->
+        <header class="h-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm flex items-center px-10 justify-between z-10 transition-colors border-b border-gray-200 dark:border-gray-800">
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white tracking-tight" id="page-title">Inventory Dashboard</h1>
+            <div class="flex items-center gap-3 bg-white dark:bg-gray-800 px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm">
+                <span class="inline-block animate-wave text-lg origin-bottom-right">👋</span>
+                <span id="greeting-text" class="text-sm text-gray-600 dark:text-gray-300 font-medium">Welcome, Manager</span>
+            </div>
+        </header>
+
+        <div class="p-10 overflow-y-auto custom-scrollbar h-full relative">
+            
+            <!-- 1. DASHBOARD VIEW -->
+            <div id="view-dashboard" class="view-section animate-fade-in-up">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+                    <!-- Gradient Stat Card 1 -->
+                    <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/30 p-8 border-none text-white transform hover:-translate-y-2 hover:shadow-xl hover:shadow-indigo-500/40 transition-all duration-300">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-indigo-100 text-sm font-semibold uppercase tracking-wider mb-2">Total Products</h3>
+                                <div class="text-5xl font-extrabold" id="totalProducts">0</div>
+                            </div>
+                            <div class="p-3 bg-white/20 rounded-xl backdrop-blur-sm text-2xl">📦</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gradient Stat Card 2 -->
+                    <div class="bg-gradient-to-br from-rose-500 to-orange-500 rounded-2xl shadow-lg shadow-rose-500/30 p-8 border-none text-white transform hover:-translate-y-2 hover:shadow-xl hover:shadow-rose-500/40 transition-all duration-300">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-rose-100 text-sm font-semibold uppercase tracking-wider mb-2">Low Stock Alerts</h3>
+                                <div class="text-5xl font-extrabold" id="lowStockCount">0</div>
+                            </div>
+                            <div class="p-3 bg-white/20 rounded-xl backdrop-blur-sm text-2xl">⚠️</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 transition-colors transform hover:shadow-md duration-300">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+                        <span class="text-rose-500 animate-pulse">🔴</span> Needs Attention
+                    </h2>
+                    <ul id="lowStockList" class="space-y-4">
+                        <li class="text-gray-500 dark:text-gray-400 text-sm animate-pulse">Scanning inventory...</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2. PRODUCTS VIEW -->
+            <div id="view-products" class="view-section hidden opacity-0">
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                    <!-- Modern Form -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 col-span-1 h-fit transition-colors hover:shadow-md">
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">✨ Add New Product</h2>
+                        <form id="addProductForm" class="space-y-5">
+                            <div>
+                                <label class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold mb-1 block">Product Name</label>
+                                <input type="text" id="pName" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm">
+                            </div>
+                            <div>
+                                <label class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold mb-1 block">SKU / Code</label>
+                                <input type="text" id="pSku" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm">
+                            </div>
+                            <div>
+                                <label class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold mb-1 block">Category</label>
+                                <input type="text" id="pCat" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold mb-1 block">Unit</label>
+                                    <input type="text" id="pUnit" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm" placeholder="e.g. kg, pcs">
+                                </div>
+                                <div>
+                                    <label class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold mb-1 block">Init Stock</label>
+                                    <input type="number" id="pStock" value="0" min="0" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm">
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-xl hover:from-indigo-700 hover:to-purple-700 font-bold tracking-wide transition-all shadow-md hover:shadow-lg transform active:scale-95 mt-4">
+                                Save Product +
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Modern Table -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 col-span-2 transition-colors hover:shadow-md">
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">📋 Product Directory</h2>
+                        <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                                        <th class="p-4 font-bold">ID</th>
+                                        <th class="p-4 font-bold">Name</th>
+                                        <th class="p-4 font-bold">SKU</th>
+                                        <th class="p-4 font-bold">Category</th>
+                                        <th class="p-4 font-bold text-right">Stock Level</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productTableBody" class="text-sm text-gray-700 dark:text-gray-300 divide-y divide-gray-100 dark:divide-gray-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. OPERATIONS VIEW -->
+            <div id="view-operations" class="view-section hidden opacity-0">
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 col-span-1 h-fit transition-colors hover:shadow-md">
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">🔄 Log Movement</h2>
+                        <form id="operationForm" class="space-y-5">
+                            <div>
+                                <label class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold mb-1 block">Select Product</label>
+                                <select id="opProduct" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm cursor-pointer"></select>
+                            </div>
+                            <div>
+                                <label class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold mb-1 block">Action Type</label>
+                                <select id="opType" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm cursor-pointer">
+                                    <option value="Receipt">📥 Receipt (Stock In)</option>
+                                    <option value="Delivery">📤 Delivery (Stock Out)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold mb-1 block">Quantity</label>
+                                <input type="number" id="opQty" required min="1" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm">
+                            </div>
+                            <button type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-xl hover:from-emerald-600 hover:to-teal-700 font-bold tracking-wide transition-all shadow-md hover:shadow-lg transform active:scale-95 mt-4">
+                                Execute Transaction
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 col-span-2 transition-colors hover:shadow-md">
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">📖 Ledger History</h2>
+                        <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                                        <th class="p-4 font-bold">Txn ID</th>
+                                        <th class="p-4 font-bold">Product</th>
+                                        <th class="p-4 font-bold">Type</th>
+                                        <th class="p-4 font-bold text-right">Qty</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ledgerTableBody" class="text-sm text-gray-700 dark:text-gray-300 divide-y divide-gray-100 dark:divide-gray-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- INLINE JAVASCRIPT -->
+    <script>
+        // --- 1. Dynamic Greeting ---
+        function updateGreeting() {
+            const hour = new Date().getHours();
+            let greeting = "Good Evening";
+            if (hour < 12) greeting = "Good Morning";
+            else if (hour < 18) greeting = "Good Afternoon";
+            document.getElementById('greeting-text').innerText = `${greeting}, Manager`;
+        }
+        updateGreeting();
+
+        // --- 2. Toast Notifications ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const isSuccess = type === 'success';
+            const bgColor = isSuccess ? 'bg-emerald-500' : 'bg-rose-500';
+            const icon = isSuccess ? '✅' : '❌';
+            
+            toast.className = `${bgColor} text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 font-medium animate-slide-in-right z-50`;
+            toast.innerHTML = `<span class="text-xl">${icon}</span> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(50px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- 3. Number Counter Animation ---
+        function animateValue(id, end) {
+            const obj = document.getElementById(id);
+            if(!obj) return;
+            const start = parseInt(obj.innerText) || 0;
+            if (start === end) return;
+            
+            const duration = 1000; // 1 second animation
+            let startTimestamp = null;
+            
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerText = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerText = end;
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // --- 4. Dark Mode Logic ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const darkIcon = document.getElementById('theme-icon-dark');
+        const lightIcon = document.getElementById('theme-icon-light');
+        const htmlElement = document.documentElement;
+
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            htmlElement.classList.add('dark');
+            lightIcon.classList.remove('hidden');
+        } else {
+            htmlElement.classList.remove('dark');
+            darkIcon.classList.remove('hidden');
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            htmlElement.classList.toggle('dark');
+            if (htmlElement.classList.contains('dark')) {
+                localStorage.setItem('theme', 'dark');
+                darkIcon.classList.add('hidden');
+                lightIcon.classList.remove('hidden');
+            } else {
+                localStorage.setItem('theme', 'light');
+                lightIcon.classList.add('hidden');
+                darkIcon.classList.remove('hidden');
+            }
+        });
+
+        // --- 5. Custom Interactive Cursor ---
+        const cursorDot = document.getElementById("cursor-dot");
+        const cursorOutline = document.getElementById("cursor-outline");
+        
+        window.addEventListener("mousemove", (e) => {
+            const posX = e.clientX;
+            const posY = e.clientY;
+            
+            cursorDot.style.left = `${posX}px`;
+            cursorDot.style.top = `${posY}px`;
+            
+            if (cursorOutline.animate) {
+                cursorOutline.animate({
+                    left: `${posX}px`,
+                    top: `${posY}px`
+                }, { duration: 300, fill: "forwards" });
+            } else {
+                cursorOutline.style.left = `${posX}px`;
+                cursorOutline.style.top = `${posY}px`;
+            }
+
+            // Interactive state checking
+            const isHovering = e.target.closest('button, a, input, select, tr');
+            if (isHovering) {
+                document.body.classList.add('cursor-hover');
+            } else {
+                document.body.classList.remove('cursor-hover');
+            }
+        });
+
+        // --- Core Application Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            async function fetchDashboardData() {
+                try {
+                    const response = await fetch('/dashboard/');
+                    if (!response.ok) throw new Error('Dashboard fetch failed');
+                    const data = await response.json();
+                    
+                    animateValue('totalProducts', data["Total Products in Stock"]);
+                    
+                    const lowStockItems = data["Low Stock Alerts"];
+                    animateValue('lowStockCount', lowStockItems.length);
+
+                    const listElement = document.getElementById('lowStockList');
+                    listElement.innerHTML = ''; 
+
+                    if (lowStockItems.length === 0) {
+                        listElement.innerHTML = `<li class="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-sm border border-emerald-100 dark:border-emerald-800/50 flex items-center gap-3 font-medium transition-all"><span class="text-xl">✅</span> All products are well stocked!</li>`;
+                    } else {
+                        lowStockItems.forEach(item => {
+                            listElement.innerHTML += `<li class="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 rounded-xl text-sm border border-rose-100 dark:border-rose-800/50 flex items-center gap-3 font-medium transition-all hover:bg-rose-100 dark:hover:bg-rose-900/40"><span class="text-xl">⚠️</span> <b>${item}</b> is running dangerously low.</li>`;
+                        });
+                    }
+                } catch (error) {
+                    console.error("Dashboard Error:", error);
+                }
+            }
+
+            async function fetchProducts() {
+                try {
+                    const response = await fetch('/products/');
+                    if (!response.ok) throw new Error('Products fetch failed');
+                    const products = await response.json();
+                    const tbody = document.getElementById('productTableBody');
+                    
+                    tbody.innerHTML = ''; 
+                    if (products.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500 dark:text-gray-400 italic">No products found. Start by adding one above.</td></tr>';
+                        return;
+                    }
+                    products.forEach(p => {
+                        const isLow = p.total_stock < 10;
+                        const stockColor = isLow ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-emerald-600 dark:text-emerald-400 font-bold';
+                        const badge = isLow ? `<span class="bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 px-2 py-1 rounded-md text-xs ml-2 uppercase tracking-wide">Low</span>` : '';
+                        
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all duration-200 group cursor-pointer">
+                                <td class="p-4 text-gray-500 dark:text-gray-400 font-mono text-xs">#${p.id}</td>
+                                <td class="p-4 font-semibold text-gray-800 dark:text-gray-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${p.name}</td>
+                                <td class="p-4 text-gray-600 dark:text-gray-400 font-mono text-sm">${p.sku}</td>
+                                <td class="p-4"><span class="bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-600 shadow-sm">${p.category}</span></td>
+                                <td class="p-4 text-right ${stockColor} text-lg">${p.total_stock} <span class="text-sm font-normal text-gray-400">${p.unit_of_measure}</span> ${badge}</td>
+                            </tr>
+                        `;
+                    });
+                } catch (error) {
+                    console.error("Products Error:", error);
+                }
+            }
+
+            const addProductForm = document.getElementById('addProductForm');
+            if (addProductForm) {
+                addProductForm.addEventListener('submit', async function(e) {
+                    e.preventDefault(); 
+
+                    const newProduct = {
+                        name: document.getElementById('pName').value,
+                        sku: document.getElementById('pSku').value,
+                        category: document.getElementById('pCat').value,
+                        unit_of_measure: document.getElementById('pUnit').value,
+                        initial_stock: parseInt(document.getElementById('pStock').value)
+                    };
+
+                    try {
+                        const response = await fetch('/products/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(newProduct)
+                        });
+
+                        if (response.ok) {
+                            showToast('Product added successfully!', 'success');
+                            document.getElementById('addProductForm').reset();
+                            fetchProducts(); 
+                            fetchDashboardData();
+                        } else {
+                            const errData = await response.json();
+                            showToast(errData.detail, 'error');
+                        }
+                    } catch (error) {
+                        showToast('Network Error! Cannot reach server.', 'error');
+                    }
+                });
+            }
+
+            let allProductsCache = {}; 
+
+            async function fetchLedgerAndProducts() {
+                try {
+                    const prodRes = await fetch('/products/');
+                    if (!prodRes.ok) return;
+                    const products = await prodRes.json();
+                    
+                    const select = document.getElementById('opProduct');
+                    select.innerHTML = '<option value="" class="dark:bg-gray-900">Select a Product</option>';
+                    products.forEach(p => {
+                        allProductsCache[p.id] = p.name; 
+                        select.innerHTML += `<option value="${p.id}" class="dark:bg-gray-900">${p.name} (Cur. Stock: ${p.total_stock})</option>`;
+                    });
+
+                    const ledRes = await fetch('/inventory/ledger/');
+                    if (!ledRes.ok) return;
+                    const ledger = await ledRes.json();
+                    const tbody = document.getElementById('ledgerTableBody');
+                    
+                    tbody.innerHTML = '';
+                    if (ledger.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500 dark:text-gray-400 italic">No transactions recorded yet.</td></tr>';
+                        return;
+                    }
+
+                    ledger.forEach(entry => {
+                        const isReceipt = entry.transaction_type === 'Receipt';
+                        const typeColor = isReceipt ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+                        const bgColor = isReceipt ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30';
+                        const sign = isReceipt ? '+' : '-';
+                        const prodName = allProductsCache[entry.product_id] || "Unknown Item";
+
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer group">
+                                <td class="p-4 text-gray-500 dark:text-gray-400 font-mono text-xs">#${entry.id}</td>
+                                <td class="p-4 font-medium text-gray-800 dark:text-gray-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${prodName}</td>
+                                <td class="p-4"><span class="${bgColor} ${typeColor} px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">${entry.transaction_type}</span></td>
+                                <td class="p-4 font-bold text-right text-lg ${typeColor}">${sign}${Math.abs(entry.quantity)}</td>
+                            </tr>
+                        `;
+                    });
+                } catch (error) {
+                    console.error("Operations Error:", error);
+                }
+            }
+
+            const operationForm = document.getElementById('operationForm');
+            if (operationForm) {
+                operationForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    const payload = {
+                        product_id: parseInt(document.getElementById('opProduct').value),
+                        transaction_type: document.getElementById('opType').value,
+                        quantity: parseInt(document.getElementById('opQty').value)
+                    };
+
+                    try {
+                        const response = await fetch('/inventory/move/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.ok) {
+                            showToast('Transaction logged successfully!', 'success');
+                            document.getElementById('opQty').value = ''; 
+                            fetchLedgerAndProducts(); 
+                            fetchDashboardData();
+                        } else {
+                            const errData = await response.json();
+                            showToast(errData.detail, 'error'); 
+                        }
+                    } catch (error) {
+                        showToast('Network Error! Cannot reach server.', 'error');
+                    }
+                });
+            }
+
+            // --- Navigation Logic with Animation trigger ---
+            const btns = {
+                'btn-dashboard': { view: 'view-dashboard', title: 'Inventory Dashboard' },
+                'btn-products': { view: 'view-products', title: 'Products Directory' },
+                'btn-operations': { view: 'view-operations', title: 'Stock Operations' }
+            };
+
+            const allViews = document.querySelectorAll('.view-section');
+            const allBtns = document.querySelectorAll('.nav-btn:not(#theme-toggle)');
+
+            for (const [btnId, config] of Object.entries(btns)) {
+                const button = document.getElementById(btnId);
+                if (button) {
+                    button.addEventListener('click', () => {
+                        // Reset all views
+                        allViews.forEach(v => {
+                            v.classList.add('hidden');
+                            v.classList.remove('animate-fade-in-up');
+                            v.classList.add('opacity-0');
+                        });
+                        
+                        // Reset all buttons style
+                        allBtns.forEach(b => {
+                            b.className = "nav-btn w-full text-left px-5 py-4 text-base hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all";
+                        });
+
+                        // Activate target view
+                        const targetView = document.getElementById(config.view);
+                        targetView.classList.remove('hidden', 'opacity-0');
+                        
+                        // Force a reflow so the animation restarts
+                        void targetView.offsetWidth; 
+                        targetView.classList.add('animate-fade-in-up');
+
+                        // Style active button
+                        button.className = "nav-btn w-full text-left px-5 py-4 text-base bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-xl font-semibold transition-all shadow-sm";
+                        
+                        document.getElementById('page-title').innerText = config.title;
+                        
+                        // Fetch fresh data for the clicked tab
+                        if (btnId === 'btn-dashboard') fetchDashboardData();
+                        if (btnId === 'btn-products') fetchProducts();
+                        if (btnId === 'btn-operations') fetchLedgerAndProducts();
+                    });
+                }
+            }
+
+            // Initial fetches
+            fetchDashboardData();
+            fetchProducts();
+            fetchLedgerAndProducts();
+        });
+    </script>
+</body>
+</html>
